@@ -55,7 +55,7 @@ abstract class TweetSet {
    * Question: Should we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-   def union(that: TweetSet): TweetSet
+   def union(that: TweetSet): TweetSet = that.filterAcc(tw => true, this)
 
   /**
    * Returns the tweet from this set which has the greatest retweet count.
@@ -118,7 +118,6 @@ class Empty extends TweetSet {
 
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
 
-
   /**
    * The following methods are already implemented
    */
@@ -130,8 +129,6 @@ class Empty extends TweetSet {
   def remove(tweet: Tweet): TweetSet = this
 
   def foreach(f: Tweet => Unit): Unit = ()
-  
-  def union(that: TweetSet): TweetSet = that
   
   def isEmpty: Boolean = true
   
@@ -172,12 +169,6 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
     right.foreach(f)
   }
   
-  def union(that: TweetSet): TweetSet = 
-    if (that.contains(elem)) 
-      new NonEmpty(elem, left.union(that.remove(elem)), right.union(that.remove(elem)))
-    else
-      new NonEmpty(elem, left.union(that), right.union(that))
-  
   def isEmpty: Boolean = false
   
   def mostRetweeted: Tweet = {
@@ -215,18 +206,27 @@ class Cons(val head: Tweet, val tail: TweetList) extends TweetList {
 object GoogleVsApple {
   val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
   val apple = List("ios", "iOS", "iphone", "iPhone", "ipad", "iPad")
-
-  lazy val googleTweets: TweetSet = ???
-  lazy val appleTweets: TweetSet = ???
+  
+  def tweetMatchesOneOf(tw: Tweet, keywords: List[String]): Boolean =
+    if (keywords.isEmpty) false
+    else if (tw.text.contains(keywords.head)) true
+    else tweetMatchesOneOf(tw, keywords.tail)
+    
+  lazy val googleTweets: TweetSet = allTweets.filter(tw => google.exists(s => tw.text.contains(s)))
+ 
+  lazy val appleTweets: TweetSet = allTweets.filter(tw => apple.exists(s => tw.text.contains(s)))
 
   /**
    * A list of all tweets mentioning a keyword from either apple or google,
    * sorted by the number of retweets.
    */
-  lazy val trending: TweetList = ???
+  lazy val trending: TweetList = googleTweets.union(appleTweets).descendingByRetweet
 }
 
 object Main extends App {
-  // Print the trending tweets
+//  GoogleVsApple.googleTweets foreach println
+//  GoogleVsApple.appleTweets foreach println
+  
+  // Print the trending tweetsgoogle
   GoogleVsApple.trending foreach println
 }
