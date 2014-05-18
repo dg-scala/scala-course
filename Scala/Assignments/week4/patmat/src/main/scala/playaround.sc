@@ -39,4 +39,5 @@ object playaround {
                                                   //| List(l, o, d, r),7),List(w,  , e, h, l, o, d, r),11)
   assert(tree == trees.head)
 	decodedSecret                             //> res9: List[Char] = List(h, u, f, f, m, a, n, e, s, t, c, o, o, l)
+	decodedSecret.size                        //> res10: Int = 14
 }
