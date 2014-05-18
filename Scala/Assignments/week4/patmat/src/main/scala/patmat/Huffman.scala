@@ -26,9 +26,15 @@ object Huffman {
 
   // Part 1: Basics
 
-  def weight(tree: CodeTree): Int = ??? // tree match ...
+  def weight(tree: CodeTree): Int = tree match {
+    case Leaf(c, w) => w
+    case Fork(l, r, cs, w) => w
+  }
 
-  def chars(tree: CodeTree): List[Char] = ??? // tree match ...
+  def chars(tree: CodeTree): List[Char] = tree match {
+    case Leaf(c, w) => c :: Nil
+    case Fork(l, r, cs, w) => cs 
+  }
 
   def makeCodeTree(left: CodeTree, right: CodeTree) =
     Fork(left, right, chars(left) ::: chars(right), weight(left) + weight(right))
@@ -71,7 +77,26 @@ object Huffman {
    *       println("integer is  : "+ theInt)
    *   }
    */
-  def times(chars: List[Char]): List[(Char, Int)] = ???
+  def times(chars: List[Char]): List[(Char, Int)] = {
+    def charCount(c: Char, cs: List[Char], n: Int): (Char, Int) = cs match {
+      case List() => (c, n)
+      case x :: xs => if (x == c) charCount(c, xs, n+1) else charCount(c, xs, n) 
+    }
+        
+    def visited(c: Char, counts: List[(Char, Int)]): Boolean = counts match {
+      case List() => false
+      case (x, n) :: cts => if (x == c) true else visited(c, cts)
+    }
+    
+    def timesAcc(text: List[Char], counts: List[(Char, Int)]): List[(Char, Int)] = text match {
+      case List() => counts
+      case c :: cs => 
+        if (visited(c, counts)) timesAcc(cs, counts)
+        else timesAcc(cs, (charCount(c, text, 0)) :: counts)
+    }
+    
+    timesAcc(chars, Nil)
+  }
 
   /**
    * Returns a list of `Leaf` nodes for a given frequency table `freqs`.
@@ -80,12 +105,32 @@ object Huffman {
    * head of the list should have the smallest weight), where the weight
    * of a leaf is the frequency of the character.
    */
-  def makeOrderedLeafList(freqs: List[(Char, Int)]): List[Leaf] = ???
+  def makeOrderedLeafList(freqs: List[(Char, Int)]): List[Leaf] = {
+    def isort(xs: List[(Char, Int)]): List[(Char, Int)] = xs match {
+      case List() => List()
+      case (c, w) :: rest => insert((c, w), isort(rest))
+    }
+    
+    def insert(cn: (Char, Int), cws: List[(Char, Int)]): List[(Char, Int)] = cws match {
+      case List() => List(cn)
+      case (c, w) :: rest => if (cn._2 <= w) cn :: cws else (c, w) :: insert(cn, rest)
+    }
+    
+    def leafListFromSorted(sorted: List[(Char, Int)]): List[Leaf] = sorted match {
+      case List() => List()
+      case (c, w) :: rest => Leaf(c, w) :: leafListFromSorted(rest)
+    }
+    
+    leafListFromSorted(isort(freqs))
+  }
 
   /**
    * Checks whether the list `trees` contains only one single code tree.
    */
-  def singleton(trees: List[CodeTree]): Boolean = ???
+  def singleton(trees: List[CodeTree]): Boolean = trees match {
+    case t :: List() => true
+    case _ => false
+  }
 
   /**
    * The parameter `trees` of this function is a list of code trees ordered
@@ -99,7 +144,10 @@ object Huffman {
    * If `trees` is a list of less than two elements, that list should be returned
    * unchanged.
    */
-  def combine(trees: List[CodeTree]): List[CodeTree] = ???
+  def combine(trees: List[CodeTree]): List[CodeTree] = trees match {
+    case x :: y :: rest => Fork(x, y, chars(x) ::: chars(y), weight(x) + weight(y)) :: rest
+    case _ => trees
+  }
 
   /**
    * This function will be called in the following way:
