@@ -40,4 +40,5 @@ object playaround {
   assert(tree == trees.head)
 	decodedSecret                             //> res9: List[Char] = List(h, u, f, f, m, a, n, e, s, t, c, o, o, l)
 	decodedSecret.size                        //> res10: Int = 14
+	List('a','b','c').contains('a')           //> res11: Boolean = true
 }
