@@ -104,9 +104,9 @@ object Huffman {
    * The return value is the new list with the element inserted
    * in the right position.
    */
-  def insert[T](less: (T, T) => Boolean)(el: T, list: List[T]): List[T] = list match {
+  def insert[T](less: T => T => Boolean)(el: T, list: List[T]): List[T] = list match {
       case List() => List(el)
-      case x :: xs => if (less(el, x)) el :: list else x :: insert(less)(el, xs)
+      case x :: xs => if (less(el)(x)) el :: list else x :: insert(less)(el, xs)
   }
 
   /**
@@ -117,7 +117,7 @@ object Huffman {
    * of a leaf is the frequency of the character.
    */
   def makeOrderedLeafList(freqs: List[(Char, Int)]): List[Leaf] = {
-    def lessThan(cw1: (Char, Int), cw2: (Char, Int)): Boolean = 
+    def lessThan(cw1: (Char, Int))(cw2: (Char, Int)): Boolean = 
       cw1._2 < cw2._2
     
     def isort(xs: List[(Char, Int)]): List[(Char, Int)] = xs match {
@@ -154,7 +154,7 @@ object Huffman {
    * unchanged.
    */
   def combine(trees: List[CodeTree]): List[CodeTree] = {
-    def lessThan(ct1: CodeTree, ct2: CodeTree): Boolean = 
+    def lessThan(ct1: CodeTree)(ct2: CodeTree): Boolean = 
       weight(ct1) < weight(ct2)
     
     trees match {
@@ -302,7 +302,7 @@ object Huffman {
    * on the two parameter code tables.
    */
   def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = {
-    def lessThan(x1: (Char, List[Bit]), x2: (Char, List[Bit])): Boolean = 
+    def lessThan(x1: (Char, List[Bit]))(x2: (Char, List[Bit])): Boolean = 
       x1._2.size < x2._2.size
           
     a match {
