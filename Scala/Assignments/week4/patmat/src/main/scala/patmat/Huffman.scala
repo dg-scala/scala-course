@@ -93,6 +93,21 @@ object Huffman {
 
     timesAcc(chars, Nil)
   }
+  
+  /**
+   * Generic in-order insert into the sorted list.
+   * 
+   * Function less should take two elements and return true
+   * if first is semantically 'smaller' than the second, and
+   * false otherwise.
+   * 
+   * The return value is the new list with the element inserted
+   * in the right position.
+   */
+  def insert[T](less: (T, T) => Boolean)(el: T, list: List[T]): List[T] = list match {
+      case List() => List(el)
+      case x :: xs => if (less(el, x)) el :: list else x :: insert(less)(el, xs)
+  }
 
   /**
    * Returns a list of `Leaf` nodes for a given frequency table `freqs`.
@@ -102,15 +117,14 @@ object Huffman {
    * of a leaf is the frequency of the character.
    */
   def makeOrderedLeafList(freqs: List[(Char, Int)]): List[Leaf] = {
+    def lessThan(cw1: (Char, Int), cw2: (Char, Int)): Boolean = 
+      cw1._2 < cw2._2
+    
     def isort(xs: List[(Char, Int)]): List[(Char, Int)] = xs match {
       case List() => List()
-      case (c, w) :: rest => insert((c, w), isort(rest))
+      case (c, w) :: rest => insert(lessThan)((c, w), isort(rest))
     }
 
-    def insert(cn: (Char, Int), cws: List[(Char, Int)]): List[(Char, Int)] = cws match {
-      case List() => List(cn)
-      case (c, w) :: rest => if (cn._2 <= w) cn :: cws else (c, w) :: insert(cn, rest)
-    }
     def leafListFromSorted(sorted: List[(Char, Int)]): List[Leaf] = sorted match {
       case List() => List()
       case (c, w) :: rest => Leaf(c, w) :: leafListFromSorted(rest)
@@ -126,7 +140,7 @@ object Huffman {
     case t :: List() => true
     case _ => false
   }
-
+    
   /**
    * The parameter `trees` of this function is a list of code trees ordered
    * by ascending weights.
@@ -140,14 +154,11 @@ object Huffman {
    * unchanged.
    */
   def combine(trees: List[CodeTree]): List[CodeTree] = {
-    def insert(ct: CodeTree, cts: List[CodeTree]): List[CodeTree] = cts match {
-      case List() => List(ct)
-      case ht :: rest =>
-        if (weight(ct) < weight(ht)) ct :: cts else ht :: insert(ct, rest)
-    }
-
+    def lessThan(ct1: CodeTree, ct2: CodeTree): Boolean = 
+      weight(ct1) < weight(ct2)
+    
     trees match {
-      case x :: y :: rest => insert(Fork(x, y, chars(x) ::: chars(y), weight(x) + weight(y)), rest)
+      case x :: y :: rest => insert(lessThan)(Fork(x, y, chars(x) ::: chars(y), weight(x) + weight(y)), rest)
       case _ => trees
     }
   }
@@ -262,7 +273,10 @@ object Huffman {
    * This function returns the bit sequence that represents the character `char` in
    * the code table `table`.
    */
-  def codeBits(table: CodeTable)(char: Char): List[Bit] = ???
+  def codeBits(table: CodeTable)(char: Char): List[Bit] = table match {
+    case List() => throw new Error("code seeems to be missing for '" + char + "'")
+    case c :: cs => if (c._1 == char) c._2 else codeBits(cs)(char)
+  }
 
   /**
    * Given a code tree, create a code table which contains, for every character in the
@@ -272,14 +286,30 @@ object Huffman {
    * a valid code tree that can be represented as a code table. Using the code tables of the
    * sub-trees, think of how to build the code table for the entire tree.
    */
-  def convert(tree: CodeTree): CodeTable = ???
+  def convert(tree: CodeTree): CodeTable = {
+    def convertBitsAcc(t: CodeTree, bits: List[Bit]): CodeTable = t match {
+    	case Leaf(c, w) => List((c, bits))
+    	case Fork(l, r, cs, w) => 
+    	  mergeCodeTables(convertBitsAcc(l, bits ::: List(0)), convertBitsAcc(r, bits ::: List(1)))
+    }
+    
+    convertBitsAcc(tree, Nil)
+  }
 
   /**
    * This function takes two code tables and merges them into one. Depending on how you
    * use it in the `convert` method above, this merge method might also do some transformations
    * on the two parameter code tables.
    */
-  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = ???
+  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = {
+    def lessThan(x1: (Char, List[Bit]), x2: (Char, List[Bit])): Boolean = 
+      x1._2.size < x2._2.size
+          
+    a match {
+    	case List() => b
+    	case x :: xs => mergeCodeTables(xs, insert(lessThan)(x, b))
+    }
+  }
 
   /**
    * This function encodes `text` according to the code tree `tree`.
